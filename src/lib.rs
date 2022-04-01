@@ -1,5 +1,7 @@
 #![no_std]
 
+mod alarm;
+
 use embedded_hal as hal;
 
 use hal::blocking::i2c::{Write, WriteRead};
@@ -45,7 +47,9 @@ impl Register {
 struct BitFlags;
 
 impl BitFlags {
-    const TEST1: u8 = 0b1000_0000;
+    const AIE: u8 = 0b0100_0000; // alarm interrupt enabled
+    const AF: u8 = 0b0100_0000; // alarm flag
+    const AE: u8 = 0b1000_0000; // alarm enable/disable for all four settings
 }
 
 const DEVICE_ADDRESS: u8 = 0b1010001;
@@ -120,5 +124,53 @@ where
         } else {
             Ok(())
         }
+    }
+}
+
+/// Convert the Binary Coded Decimal value to decimal (only the lowest 7 bits).
+fn decode_bcd(input: u8) -> u8 {
+    let digits: u8 = input & 0xf;
+    let tens: u8 = (input >> 4) & 0x7;
+    10 * tens + digits
+}
+
+/// Convert the decimal value to Binary Coded Decimal.
+fn encode_bcd(input: u8) -> u8 {
+    let digits: u8 = input % 10;
+    let tens: u8 = input / 10;
+    let tens = tens << 4;
+    tens + digits
+}
+
+#[cfg(test)]
+mod tests {
+    use embedded_hal_mock as hal;
+
+    use super::*;
+
+    #[test]
+    fn can_convert_decode_bcd() {
+        assert_eq!(0, decode_bcd(0b0000_0000));
+        assert_eq!(1, decode_bcd(0b0000_0001));
+        assert_eq!(9, decode_bcd(0b0000_1001));
+        assert_eq!(10, decode_bcd(0b0001_0000));
+        assert_eq!(11, decode_bcd(0b0001_0001));
+        assert_eq!(19, decode_bcd(0b0001_1001));
+        assert_eq!(20, decode_bcd(0b0010_0000));
+        assert_eq!(21, decode_bcd(0b0010_0001));
+        assert_eq!(59, decode_bcd(0b0101_1001));
+    }
+
+    #[test]
+    fn can_convert_encode_bcd() {
+        assert_eq!(0b0000_0000, encode_bcd(0));
+        assert_eq!(0b0000_0001, encode_bcd(1));
+        assert_eq!(0b0000_1001, encode_bcd(9));
+        assert_eq!(0b0001_0000, encode_bcd(10));
+        assert_eq!(0b0001_0001, encode_bcd(11));
+        assert_eq!(0b0001_1001, encode_bcd(19));
+        assert_eq!(0b0010_0000, encode_bcd(20));
+        assert_eq!(0b0010_0001, encode_bcd(21));
+        assert_eq!(0b0101_1001, encode_bcd(59));
     }
 }
