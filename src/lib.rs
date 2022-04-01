@@ -127,6 +127,19 @@ where
     }
 }
 
+impl<I2C, E> PCF8563<I2C>
+where
+    I2C: Write<Error = E> + WriteRead<Error = E>,
+{
+    pub fn read_ram_byte(&mut self) -> Result<u8, Error<E>> {
+        self.read_register(Register::RAM_BYTE)
+    }
+
+    pub fn write_ram_byte(&mut self, byte: u8) -> Result<(), Error<E>> {
+        self.write_register(Register::RAM_BYTE, byte)
+    }
+}
+
 /// Convert the Binary Coded Decimal value to decimal (only the lowest 7 bits).
 fn decode_bcd(input: u8) -> u8 {
     let digits: u8 = input & 0xf;
