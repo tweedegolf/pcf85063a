@@ -1,10 +1,13 @@
 #![no_std]
 
 mod alarm;
+mod datetime;
 
 use embedded_hal as hal;
 
 use hal::blocking::i2c::{Write, WriteRead};
+
+pub use datetime::{DateTime, Time};
 
 /// All possible errors in this crate
 #[derive(Debug)]
@@ -16,6 +19,7 @@ pub enum Error<E> {
 }
 struct Register;
 
+#[allow(dead_code)]
 impl Register {
     // control and status registers
     const CONTROL_1: u8 = 0x00;
@@ -46,10 +50,27 @@ impl Register {
 
 struct BitFlags;
 
+#[allow(dead_code)]
 impl BitFlags {
-    const AIE: u8 = 0b0100_0000; // alarm interrupt enabled
+    // control 1
+    const CAP_SEL: u8 = 0b0000_0001; // internal oscillator capacitor selection
+    const MODE_12_24: u8 = 0b0000_0010; // 12 or 24-hour ode
+    const CIE: u8 = 0b0000_0100; // connection interrupt enable
+                                 // 3: UNUSED
+    const SR: u8 = 0b0001_0000; // software reset
+    const STOP: u8 = 0b0010_0000; // RTC clock stop bit
+                                  // 6: UNUSED
+    const EXT_TEST: u8 = 0b1000_0000; // external clock test mode
+
+    // control 2
+    const COF: u8 = 0b0000_0111; // clkout control
+    const TF: u8 = 0b0000_1000; // timer flag
+    const HMI: u8 = 0b0001_0000; // half minute interrupt
+    const MI: u8 = 0b0010_0000; // minute interrupt
     const AF: u8 = 0b0100_0000; // alarm flag
-    const AE: u8 = 0b1000_0000; // alarm enable/disable for all four settings
+    const AIE: u8 = 0b0100_0000; // alarm interrupt enabled
+
+    const AE: u8 = 0b1000_0000; // alarm enable/disable for all five (s/m/h/d/wd) settings
 }
 
 const DEVICE_ADDRESS: u8 = 0b1010001;
@@ -137,6 +158,50 @@ where
 
     pub fn write_ram_byte(&mut self, byte: u8) -> Result<(), Error<E>> {
         self.write_register(Register::RAM_BYTE, byte)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(u8)]
+pub enum OutputFrequency {
+    Hz32768 = 0b000,
+    Hz16384 = 0b001,
+    Hz8192 = 0b010,
+    Hz4096 = 0b011,
+    Hz2048 = 0b100,
+    Hz1024 = 0b101,
+    Hz1 = 0b110,
+    Hz0 = 0b111,
+}
+
+impl Default for OutputFrequency {
+    fn default() -> Self {
+        OutputFrequency::Hz32768
+    }
+}
+
+impl OutputFrequency {
+    pub const fn bits(self) -> u8 {
+        self as u8
+    }
+}
+
+impl<I2C, E> PCF8563<I2C>
+where
+    I2C: Write<Error = E> + WriteRead<Error = E>,
+{
+    pub fn read_clock_output_frequency(&mut self) -> Result<OutputFrequency, Error<E>> {
+        let value = self.read_register(Register::CONTROL_2)? & BitFlags::COF;
+
+        Ok(unsafe { core::mem::transmute(value) })
+    }
+
+    pub fn write_clock_output_frequency(&mut self, freq: OutputFrequency) -> Result<(), Error<E>> {
+        let value = self.read_register(Register::CONTROL_2)?;
+        let cleared = value ^ BitFlags::COF;
+        let set = cleared | freq as u8;
+
+        self.write_register(Register::CONTROL_2, set)
     }
 }
 
