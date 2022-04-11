@@ -161,6 +161,19 @@ where
     }
 }
 
+impl<I2C, E> PCF85063<I2C>
+where
+    I2C: Write<Error = E> + WriteRead<Error = E>,
+{
+    pub fn stop_clock(&mut self) -> Result<(), Error<E>> {
+        self.set_register_bit_flag(Register::CONTROL_1, BitFlags::STOP)
+    }
+
+    pub fn start_clock(&mut self) -> Result<(), Error<E>> {
+        self.clear_register_bit_flag(Register::CONTROL_1, BitFlags::STOP)
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum OutputFrequency {
