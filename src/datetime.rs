@@ -75,8 +75,8 @@ where
             weekday: decode_bcd(data[4] & 0x07),
             day: decode_bcd(data[3] & 0x3f),
             hours: decode_bcd(data[2] & 0x3f),
-            minutes: decode_bcd(data[1] & 0x7f),
-            seconds: decode_bcd(data[0]),
+            minutes: decode_bcd(data[1] & 0b0111_1111),
+            seconds: decode_bcd(data[0] & 0b0111_1111),
         })
     }
 
