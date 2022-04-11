@@ -10,7 +10,7 @@ use super::{decode_bcd, encode_bcd, hal, Error, Register, DEVICE_ADDRESS, PCF850
 use hal::blocking::i2c::{Write, WriteRead};
 
 /// Container to hold date and time components.
-#[derive(Debug, Clone, Copy, PartialEq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct DateTime {
     /// Year [0-99].
     pub year: u8,
@@ -28,17 +28,31 @@ pub struct DateTime {
     pub seconds: u8,
 }
 
+impl Default for DateTime {
+    fn default() -> Self {
+        Self {
+            year: Default::default(),
+            month: 1,
+            weekday: 0b110, // the default weekday is, of course, the sunday...
+            day: 1,
+            hours: Default::default(),
+            minutes: Default::default(),
+            seconds: Default::default(),
+        }
+    }
+}
+
 impl DateTime {
-    fn is_valid(&self) -> bool {
-        self.year > 99
-            || self.month < 1
-            || self.month > 12
-            || self.weekday > 6
-            || self.day < 1
-            || self.month > 31
-            || self.hours > 23
-            || self.minutes > 59
-            || self.seconds > 59
+    pub fn is_valid(&self) -> bool {
+        self.year <= 99
+            || self.month >= 1
+            || self.month <= 12
+            || self.weekday <= 6
+            || self.day >= 1
+            || self.month <= 31
+            || self.hours <= 23
+            || self.minutes <= 59
+            || self.seconds <= 59
     }
 }
 
@@ -55,7 +69,7 @@ pub struct Time {
 
 impl Time {
     fn is_valid(&self) -> bool {
-        self.hours > 23 || self.minutes > 59 || self.seconds > 59
+        self.hours <= 23 || self.minutes <= 59 || self.seconds <= 59
     }
 }
 
@@ -84,7 +98,7 @@ where
     ///
     /// Will return an 'Error::InvalidInputData' if any of the parameters is out of range.
     pub fn set_datetime(&mut self, datetime: &DateTime) -> Result<(), Error<E>> {
-        if datetime.is_valid() {
+        if !datetime.is_valid() {
             return Err(Error::InvalidInputData);
         }
 
@@ -105,7 +119,7 @@ where
     ///
     /// Will return an 'Error::InvalidInputData' if any of the parameters is out of range.
     pub fn set_time(&mut self, time: &Time) -> Result<(), Error<E>> {
-        if time.is_valid() {
+        if !time.is_valid() {
             return Err(Error::InvalidInputData);
         }
 
@@ -116,5 +130,15 @@ where
             encode_bcd(time.hours),
         ];
         self.i2c.write(DEVICE_ADDRESS, &payload).map_err(Error::I2C)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn datetime_default_is_valid() {
+        assert!(DateTime::default().is_valid())
     }
 }
