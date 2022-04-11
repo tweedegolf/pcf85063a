@@ -6,11 +6,11 @@
 //! TO DO: As the chip may be used for devices that are clocks only, without the calendar function
 //! a convenient set_time() function could be added (sets only seconds, minutes and hours)
 
-use super::{decode_bcd, encode_bcd, hal, Error, Register, DEVICE_ADDRESS, PCF8563};
+use super::{decode_bcd, encode_bcd, hal, Error, Register, DEVICE_ADDRESS, PCF85063};
 use hal::blocking::i2c::{Write, WriteRead};
 
 /// Container to hold date and time components.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct DateTime {
     /// Year [0-99].
     pub year: u8,
@@ -43,7 +43,7 @@ impl DateTime {
 }
 
 /// Container to hold time components only (for clock applications without calendar functions).
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct Time {
     /// Hours [0-23]
     pub hours: u8,
@@ -59,7 +59,7 @@ impl Time {
     }
 }
 
-impl<I2C, E> PCF8563<I2C>
+impl<I2C, E> PCF85063<I2C>
 where
     I2C: Write<Error = E> + WriteRead<Error = E>,
 {

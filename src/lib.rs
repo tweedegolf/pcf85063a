@@ -54,7 +54,7 @@ struct BitFlags;
 impl BitFlags {
     // control 1
     const CAP_SEL: u8 = 0b0000_0001; // internal oscillator capacitor selection
-    const MODE_12_24: u8 = 0b0000_0010; // 12 or 24-hour ode
+    const MODE_12_24: u8 = 0b0000_0010; // 12 or 24-hour mode
     const CIE: u8 = 0b0000_0100; // connection interrupt enable
                                  // 3: UNUSED
     const SR: u8 = 0b0001_0000; // software reset
@@ -87,18 +87,18 @@ pub enum Control {
 
 /// PCF8563 driver
 #[derive(Debug, Default)]
-pub struct PCF8563<I2C> {
+pub struct PCF85063<I2C> {
     /// The concrete I2C device implementation.
     i2c: I2C,
 }
 
-impl<I2C, E> PCF8563<I2C>
+impl<I2C, E> PCF85063<I2C>
 where
     I2C: Write<Error = E> + WriteRead<Error = E>,
 {
     /// Create a new instance of the PCF8563 driver.
     pub fn new(i2c: I2C) -> Self {
-        PCF8563 { i2c }
+        PCF85063 { i2c }
     }
 
     /// Destroy driver instance, return I2C bus instance.
@@ -148,7 +148,7 @@ where
     }
 }
 
-impl<I2C, E> PCF8563<I2C>
+impl<I2C, E> PCF85063<I2C>
 where
     I2C: Write<Error = E> + WriteRead<Error = E>,
 {
@@ -186,7 +186,7 @@ impl OutputFrequency {
     }
 }
 
-impl<I2C, E> PCF8563<I2C>
+impl<I2C, E> PCF85063<I2C>
 where
     I2C: Write<Error = E> + WriteRead<Error = E>,
 {

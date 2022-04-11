@@ -1,9 +1,9 @@
 use super::{
-    decode_bcd, encode_bcd, hal, BitFlags, Control, Error, Register, DEVICE_ADDRESS, PCF8563,
+    decode_bcd, encode_bcd, hal, BitFlags, Control, Error, Register, DEVICE_ADDRESS, PCF85063,
 };
 use hal::blocking::i2c::{Write, WriteRead};
 
-impl<I2C, E> PCF8563<I2C>
+impl<I2C, E> PCF85063<I2C>
 where
     I2C: Write<Error = E> + WriteRead<Error = E>,
 {
