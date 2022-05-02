@@ -8,6 +8,18 @@ where
     I2C: Write<Error = E> + WriteRead<Error = E>,
 {
     /// Set the alarm minutes [0-59], keeping the AE bit unchanged.
+    pub fn set_alarm_seconds(&mut self, seconds: u8) -> Result<(), Error<E>> {
+        if seconds > 59 {
+            return Err(Error::InvalidInputData);
+        }
+        let data: u8 = self.read_register(Register::SECOND_ALARM)?; // read current value
+        let data: u8 = data & BitFlags::AE; // keep the AE bit as is
+        let setting: u8 = encode_bcd(seconds);
+        let data: u8 = data | setting;
+        self.write_register(Register::SECOND_ALARM, data)
+    }
+
+    /// Set the alarm minutes [0-59], keeping the AE bit unchanged.
     pub fn set_alarm_minutes(&mut self, minutes: u8) -> Result<(), Error<E>> {
         if minutes > 59 {
             return Err(Error::InvalidInputData);
@@ -53,6 +65,14 @@ where
         let setting: u8 = encode_bcd(weekday);
         let data: u8 = data | setting;
         self.write_register(Register::WEEKDAY_ALARM, data)
+    }
+
+    /// Control alarm seconds (On: alarm enabled, Off: alarm disabled).
+    pub fn control_alarm_seconds(&mut self, status: Control) -> Result<(), Error<E>> {
+        match status {
+            Control::Off => self.set_register_bit_flag(Register::SECOND_ALARM, BitFlags::AE),
+            Control::On => self.clear_register_bit_flag(Register::SECOND_ALARM, BitFlags::AE),
+        }
     }
 
     /// Control alarm minutes (On: alarm enabled, Off: alarm disabled).
