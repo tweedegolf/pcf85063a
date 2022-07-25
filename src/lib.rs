@@ -101,6 +101,11 @@ where
         PCF85063 { i2c }
     }
 
+    /// Reset the RTC
+    pub fn reset(&mut self) -> Result<(), Error<E>> {
+        self.set_register_bit_flag(Register::CONTROL_1, BitFlags::SR)
+    }
+
     /// Destroy driver instance, return I2C bus instance.
     pub fn destroy(self) -> I2C {
         self.i2c
