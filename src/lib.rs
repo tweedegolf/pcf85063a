@@ -68,7 +68,7 @@ impl BitFlags {
     const HMI: u8 = 0b0001_0000; // half minute interrupt
     const MI: u8 = 0b0010_0000; // minute interrupt
     const AF: u8 = 0b0100_0000; // alarm flag
-    const AIE: u8 = 0b0100_0000; // alarm interrupt enabled
+    const AIE: u8 = 0b1000_0000; // alarm interrupt enabled
 
     const AE: u8 = 0b1000_0000; // alarm enable/disable for all five (s/m/h/d/wd) settings
 }
