@@ -71,6 +71,21 @@ impl Time {
     fn is_valid(&self) -> bool {
         self.hours <= 23 || self.minutes <= 59 || self.seconds <= 59
     }
+
+    /// Get time from seconds. Wraps at 23:59:59
+    pub fn from_seconds(seconds: u64) -> Self {
+        let s = seconds % 60;
+        let minutes = seconds / 60;
+        let m = minutes % 60;
+        let hours = minutes / 60;
+        let h = hours % 24;
+
+        Self {
+            hours: h as u8,
+            minutes: m as u8,
+            seconds: s as u8,
+        }
+    }
 }
 
 impl<I2C, E> PCF85063<I2C>

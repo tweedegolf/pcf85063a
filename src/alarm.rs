@@ -1,3 +1,5 @@
+use crate::Time;
+
 use super::{
     decode_bcd, encode_bcd, hal, BitFlags, Control, Error, Register, DEVICE_ADDRESS, PCF85063,
 };
@@ -55,6 +57,14 @@ where
         self.write_register(Register::DAY_ALARM, data)
     }
 
+    /// Set the alarm hours, minutes and seconds. Convenience function to call
+    /// `Self::set_alarm_hours`, `Self::set_alarm_minutes`, and `Self::set_alarm_seconds`
+    pub fn set_alarm_time(&mut self, time: &Time) -> Result<(), Error<E>> {
+        self.set_alarm_hours(time.hours)?;
+        self.set_alarm_minutes(time.minutes)?;
+        self.set_alarm_seconds(time.seconds)
+    }
+
     /// Set the alarm weekday [0-6], keeping the AE bit unchanged.
     pub fn set_alarm_weekday(&mut self, weekday: u8) -> Result<(), Error<E>> {
         if weekday > 6 {
@@ -103,6 +113,13 @@ where
         let flag = self.is_register_bit_flag_high(Register::HOUR_ALARM, BitFlags::AE)?;
         let flag = flag ^ true;
         Ok(flag)
+    }
+
+    /// Control alarm hours, minutes, and seconds in one go (On: alarm enabled, Off: alarm disabled).
+    pub fn control_alarm_time(&mut self, status: Control) -> Result<(), Error<E>> {
+        self.control_alarm_seconds(status)?;
+        self.control_alarm_minutes(status)?;
+        self.control_alarm_hours(status)
     }
 
     /// Control alarm day (On: alarm enabled, Off: alarm disabled).
