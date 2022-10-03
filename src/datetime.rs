@@ -56,6 +56,49 @@ impl DateTime {
     }
 }
 
+#[cfg(feature = "chrono")]
+impl DateTime {
+    /// Convert from [chrono::DateTime<chrono::Utc>]. As the RTC
+    /// supports years from 0-99, year is wrapped at 100.
+    pub fn from_chrono(c: chrono::DateTime<chrono::Utc>) -> Self {
+        use chrono::{Datelike, Timelike};
+        let naive = c.naive_utc();
+        let date = naive.date();
+        let time = naive.time();
+        Self {
+            // RTC supports years 0-99
+            year: (date.year_ce().1 % 100) as u8,
+            month: date.month() as u8,
+            weekday: date.weekday().num_days_from_sunday() as u8,
+            day: date.day() as u8,
+            hours: time.hour() as u8,
+            minutes: time.minute() as u8,
+            seconds: time.second() as u8,
+        }
+    }
+
+    /// Convert from [chrono::DateTime<chrono::Utc>]. As the RTC
+    /// supports years from 0-99, 2000 is added to year if `0 <= year <= 69`,
+    /// 1900 is added otherwise.
+    ///
+    /// For example:
+    /// - 05 &rarr; 2005
+    /// - 69 &rarr; 2069
+    /// - 70 &rarr; 1970
+    /// - 95 &rarr; 1995
+    pub fn into_chrono(self) -> chrono::DateTime<chrono::Utc> {
+        use chrono::TimeZone;
+        let year = self.year as i32;
+        let year = match year {
+            0..=69 => year + 2000,
+            _ => year + 1900,
+        };
+        chrono::Utc
+            .ymd(year, self.month as u32, self.day as u32)
+            .and_hms(self.hours as u32, self.minutes as u32, self.seconds as u32)
+    }
+}
+
 /// Container to hold time components only (for clock applications without calendar functions).
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct Time {
@@ -70,6 +113,21 @@ pub struct Time {
 impl Time {
     fn is_valid(&self) -> bool {
         self.hours <= 23 || self.minutes <= 59 || self.seconds <= 59
+    }
+
+    /// Get time from seconds. Wraps at 23:59:59
+    pub fn from_seconds(seconds: u64) -> Self {
+        let s = seconds % 60;
+        let minutes = seconds / 60;
+        let m = minutes % 60;
+        let hours = minutes / 60;
+        let h = hours % 24;
+
+        Self {
+            hours: h as u8,
+            minutes: m as u8,
+            seconds: s as u8,
+        }
     }
 }
 
