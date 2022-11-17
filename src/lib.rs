@@ -3,9 +3,7 @@
 mod alarm;
 mod datetime;
 
-use embedded_hal as hal;
-
-use hal::blocking::i2c::{Write, WriteRead};
+use embedded_hal_async::i2c::I2c;
 
 pub use datetime::{DateTime, Time};
 
@@ -94,7 +92,7 @@ pub struct PCF85063<I2C> {
 
 impl<I2C, E> PCF85063<I2C>
 where
-    I2C: Write<Error = E> + WriteRead<Error = E>,
+    I2C: I2c<Error = E>,
 {
     /// Create a new instance of the PCF8563 driver.
     pub fn new(i2c: I2C) -> Self {
@@ -102,8 +100,8 @@ where
     }
 
     /// Reset the RTC
-    pub fn reset(&mut self) -> Result<(), Error<E>> {
-        self.set_register_bit_flag(Register::CONTROL_1, BitFlags::SR)
+    pub async fn reset(&mut self) -> Result<(), Error<E>> {
+        self.set_register_bit_flag(Register::CONTROL_1, BitFlags::SR).await
     }
 
     /// Destroy driver instance, return I2C bus instance.
@@ -112,41 +110,45 @@ where
     }
 
     /// Write to a register.
-    fn write_register(&mut self, register: u8, data: u8) -> Result<(), Error<E>> {
+    async fn write_register(&mut self, register: u8, data: u8) -> Result<(), Error<E>> {
         let payload: [u8; 2] = [register, data];
-        self.i2c.write(DEVICE_ADDRESS, &payload).map_err(Error::I2C)
+        self.i2c
+            .write(DEVICE_ADDRESS, &payload)
+            .await
+            .map_err(Error::I2C)
     }
 
     /// Read from a register.
-    fn read_register(&mut self, register: u8) -> Result<u8, Error<E>> {
+    async fn read_register(&mut self, register: u8) -> Result<u8, Error<E>> {
         let mut data = [0];
         self.i2c
             .write_read(DEVICE_ADDRESS, &[register], &mut data)
+            .await
             .map_err(Error::I2C)
             .and(Ok(data[0]))
     }
 
     /// Check if specific bits are set.
-    fn is_register_bit_flag_high(&mut self, address: u8, bitmask: u8) -> Result<bool, Error<E>> {
-        let data = self.read_register(address)?;
+    async fn is_register_bit_flag_high(&mut self, address: u8, bitmask: u8) -> Result<bool, Error<E>> {
+        let data = self.read_register(address).await?;
         Ok((data & bitmask) != 0)
     }
 
     /// Set specific bits.
-    fn set_register_bit_flag(&mut self, address: u8, bitmask: u8) -> Result<(), Error<E>> {
-        let data = self.read_register(address)?;
+    async fn set_register_bit_flag(&mut self, address: u8, bitmask: u8) -> Result<(), Error<E>> {
+        let data = self.read_register(address).await?;
         if (data & bitmask) == 0 {
-            self.write_register(address, data | bitmask)
+            self.write_register(address, data | bitmask).await
         } else {
             Ok(())
         }
     }
 
     /// Clear specific bits.
-    fn clear_register_bit_flag(&mut self, address: u8, bitmask: u8) -> Result<(), Error<E>> {
-        let data = self.read_register(address)?;
+    async fn clear_register_bit_flag(&mut self, address: u8, bitmask: u8) -> Result<(), Error<E>> {
+        let data = self.read_register(address).await?;
         if (data & bitmask) != 0 {
-            self.write_register(address, data & !bitmask)
+            self.write_register(address, data & !bitmask).await
         } else {
             Ok(())
         }
@@ -155,27 +157,27 @@ where
 
 impl<I2C, E> PCF85063<I2C>
 where
-    I2C: Write<Error = E> + WriteRead<Error = E>,
+    I2C: I2c<Error = E>,
 {
-    pub fn read_ram_byte(&mut self) -> Result<u8, Error<E>> {
-        self.read_register(Register::RAM_BYTE)
+    pub async fn read_ram_byte(&mut self) -> Result<u8, Error<E>> {
+        self.read_register(Register::RAM_BYTE).await
     }
 
-    pub fn write_ram_byte(&mut self, byte: u8) -> Result<(), Error<E>> {
-        self.write_register(Register::RAM_BYTE, byte)
+    pub async fn write_ram_byte(&mut self, byte: u8) -> Result<(), Error<E>> {
+        self.write_register(Register::RAM_BYTE, byte).await
     }
 }
 
 impl<I2C, E> PCF85063<I2C>
 where
-    I2C: Write<Error = E> + WriteRead<Error = E>,
+    I2C: I2c<Error = E>,
 {
-    pub fn stop_clock(&mut self) -> Result<(), Error<E>> {
-        self.set_register_bit_flag(Register::CONTROL_1, BitFlags::STOP)
+    pub async fn stop_clock(&mut self) -> Result<(), Error<E>> {
+        self.set_register_bit_flag(Register::CONTROL_1, BitFlags::STOP).await
     }
 
-    pub fn start_clock(&mut self) -> Result<(), Error<E>> {
-        self.clear_register_bit_flag(Register::CONTROL_1, BitFlags::STOP)
+    pub async fn start_clock(&mut self) -> Result<(), Error<E>> {
+        self.clear_register_bit_flag(Register::CONTROL_1, BitFlags::STOP).await
     }
 }
 
@@ -206,20 +208,20 @@ impl OutputFrequency {
 
 impl<I2C, E> PCF85063<I2C>
 where
-    I2C: Write<Error = E> + WriteRead<Error = E>,
+    I2C: I2c<Error = E>,
 {
-    pub fn read_clock_output_frequency(&mut self) -> Result<OutputFrequency, Error<E>> {
-        let value = self.read_register(Register::CONTROL_2)? & BitFlags::COF;
+    pub async fn read_clock_output_frequency(&mut self) -> Result<OutputFrequency, Error<E>> {
+        let value = self.read_register(Register::CONTROL_2).await? & BitFlags::COF;
 
         Ok(unsafe { core::mem::transmute(value) })
     }
 
-    pub fn write_clock_output_frequency(&mut self, freq: OutputFrequency) -> Result<(), Error<E>> {
-        let value = self.read_register(Register::CONTROL_2)?;
+    pub async fn write_clock_output_frequency(&mut self, freq: OutputFrequency) -> Result<(), Error<E>> {
+        let value = self.read_register(Register::CONTROL_2).await?;
         let cleared = value ^ BitFlags::COF;
         let set = cleared | freq as u8;
 
-        self.write_register(Register::CONTROL_2, set)
+        self.write_register(Register::CONTROL_2, set).await
     }
 }
 
@@ -240,8 +242,6 @@ fn encode_bcd(input: u8) -> u8 {
 
 #[cfg(test)]
 mod tests {
-    use embedded_hal_mock as hal;
-
     use super::*;
 
     #[test]

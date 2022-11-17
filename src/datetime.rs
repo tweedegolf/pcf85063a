@@ -6,8 +6,8 @@
 //! TO DO: As the chip may be used for devices that are clocks only, without the calendar function
 //! a convenient set_time() function could be added (sets only seconds, minutes and hours)
 
-use super::{decode_bcd, encode_bcd, hal, Error, Register, DEVICE_ADDRESS, PCF85063};
-use hal::blocking::i2c::{Write, WriteRead};
+use super::{decode_bcd, encode_bcd, Error, Register, DEVICE_ADDRESS, PCF85063};
+use embedded_hal_async::i2c::I2c;
 
 /// Container to hold date and time components.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -75,13 +75,14 @@ impl Time {
 
 impl<I2C, E> PCF85063<I2C>
 where
-    I2C: Write<Error = E> + WriteRead<Error = E>,
+    I2C: I2c<Error = E>,
 {
     /// Read date and time all at once.
-    pub fn get_datetime(&mut self) -> Result<DateTime, Error<E>> {
+    pub async fn get_datetime(&mut self) -> Result<DateTime, Error<E>> {
         let mut data = [0; 7];
         self.i2c
             .write_read(DEVICE_ADDRESS, &[Register::SECONDS], &mut data)
+            .await
             .map_err(Error::I2C)?;
         Ok(DateTime {
             year: decode_bcd(data[6]),
@@ -97,7 +98,7 @@ where
     /// Set date and time all at once.
     ///
     /// Will return an 'Error::InvalidInputData' if any of the parameters is out of range.
-    pub fn set_datetime(&mut self, datetime: &DateTime) -> Result<(), Error<E>> {
+    pub async fn set_datetime(&mut self, datetime: &DateTime) -> Result<(), Error<E>> {
         if !datetime.is_valid() {
             return Err(Error::InvalidInputData);
         }
@@ -112,13 +113,16 @@ where
             encode_bcd(datetime.month), //century bit set to 0
             encode_bcd(datetime.year),
         ];
-        self.i2c.write(DEVICE_ADDRESS, &payload).map_err(Error::I2C)
+        self.i2c
+            .write(DEVICE_ADDRESS, &payload)
+            .await
+            .map_err(Error::I2C)
     }
 
     /// Set only the time, date remains unchanged.
     ///
     /// Will return an 'Error::InvalidInputData' if any of the parameters is out of range.
-    pub fn set_time(&mut self, time: &Time) -> Result<(), Error<E>> {
+    pub async fn set_time(&mut self, time: &Time) -> Result<(), Error<E>> {
         if !time.is_valid() {
             return Err(Error::InvalidInputData);
         }
@@ -129,7 +133,10 @@ where
             encode_bcd(time.minutes),
             encode_bcd(time.hours),
         ];
-        self.i2c.write(DEVICE_ADDRESS, &payload).map_err(Error::I2C)
+        self.i2c
+            .write(DEVICE_ADDRESS, &payload)
+            .await
+            .map_err(Error::I2C)
     }
 }
 
