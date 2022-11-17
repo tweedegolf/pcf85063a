@@ -5,8 +5,6 @@ mod datetime;
 
 use embedded_hal_async::i2c::I2c;
 
-pub use datetime::{DateTime, Time};
-
 /// All possible errors in this crate
 #[derive(Debug)]
 pub enum Error<E> {
@@ -14,7 +12,16 @@ pub enum Error<E> {
     I2C(E),
     /// Invalid input data
     InvalidInputData,
+    /// A time component was out of range
+    ComponentRange(time::error::ComponentRange),
 }
+
+impl<E> From<time::error::ComponentRange> for Error<E> {
+    fn from(v: time::error::ComponentRange) -> Self {
+        Self::ComponentRange(v)
+    }
+}
+
 struct Register;
 
 #[allow(dead_code)]

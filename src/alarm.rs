@@ -1,11 +1,20 @@
 use super::{decode_bcd, encode_bcd, BitFlags, Control, Error, Register, DEVICE_ADDRESS, PCF85063};
 use embedded_hal_async::i2c::I2c;
+use time::Time;
 
 impl<I2C, E> PCF85063<I2C>
 where
     I2C: I2c<Error = E>,
 {
-    /// Set the alarm minutes [0-59], keeping the AE bit unchanged.
+    /// Set the alarm seconds, minutes and hours, keeping the AE bit unchanged.
+    pub async fn set_alarm_time(&mut self, time: Time) -> Result<(), Error<E>> {
+        self.set_alarm_seconds(time.second()).await?;
+        self.set_alarm_minutes(time.minute()).await?;
+        self.set_alarm_hours(time.hour()).await?;
+        Ok(())
+    }
+
+    /// Set the alarm seconds [0-59], keeping the AE bit unchanged.
     pub async fn set_alarm_seconds(&mut self, seconds: u8) -> Result<(), Error<E>> {
         if seconds > 59 {
             return Err(Error::InvalidInputData);
@@ -177,6 +186,24 @@ where
         }
     }
 
+    pub async fn get_alarm_time(&mut self) -> Result<Time, Error<E>> {
+        Ok(Time::from_hms(
+            self.get_alarm_hours().await?,
+            self.get_alarm_minutes().await?,
+            self.get_alarm_seconds().await?,
+        )?)
+    }
+
+    /// Read the alarm seconds setting.        
+    pub async fn get_alarm_seconds(&mut self) -> Result<u8, Error<E>> {
+        let mut data = [0];
+        self.i2c
+            .write_read(DEVICE_ADDRESS, &[Register::SECOND_ALARM], &mut data)
+            .await
+            .map_err(Error::I2C)?;
+        Ok(decode_bcd(data[0]))
+    }
+
     /// Read the alarm minutes setting.        
     pub async fn get_alarm_minutes(&mut self) -> Result<u8, Error<E>> {
         let mut data = [0];
@@ -237,6 +264,7 @@ where
 
     /// Shut off the alarms at once.
     pub async fn disable_all_alarms(&mut self) -> Result<(), Error<E>> {
+        self.control_alarm_seconds(Control::Off).await?;
         self.control_alarm_minutes(Control::Off).await?;
         self.control_alarm_hours(Control::Off).await?;
         self.control_alarm_day(Control::Off).await?;

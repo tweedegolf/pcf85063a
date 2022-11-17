@@ -8,110 +8,45 @@
 
 use super::{decode_bcd, encode_bcd, Error, Register, DEVICE_ADDRESS, PCF85063};
 use embedded_hal_async::i2c::I2c;
-
-/// Container to hold date and time components.
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct DateTime {
-    /// Year [0-99].
-    pub year: u8,
-    /// Month [1-12]
-    pub month: u8,
-    /// Weekday [0-6].
-    pub weekday: u8,
-    /// Days [1-31].
-    pub day: u8,
-    /// Hours [0-23].
-    pub hours: u8,
-    /// Minutes [0-59].
-    pub minutes: u8,
-    /// Seconds [0-59].
-    pub seconds: u8,
-}
-
-impl Default for DateTime {
-    fn default() -> Self {
-        Self {
-            year: Default::default(),
-            month: 1,
-            weekday: 0b110, // the default weekday is, of course, the sunday...
-            day: 1,
-            hours: Default::default(),
-            minutes: Default::default(),
-            seconds: Default::default(),
-        }
-    }
-}
-
-impl DateTime {
-    pub fn is_valid(&self) -> bool {
-        self.year <= 99
-            || self.month >= 1
-            || self.month <= 12
-            || self.weekday <= 6
-            || self.day >= 1
-            || self.month <= 31
-            || self.hours <= 23
-            || self.minutes <= 59
-            || self.seconds <= 59
-    }
-}
-
-/// Container to hold time components only (for clock applications without calendar functions).
-#[derive(Debug, Clone, Copy, PartialEq, Default)]
-pub struct Time {
-    /// Hours [0-23]
-    pub hours: u8,
-    /// Minutes [0-59]
-    pub minutes: u8,
-    /// Seconds [0-59]
-    pub seconds: u8,
-}
-
-impl Time {
-    fn is_valid(&self) -> bool {
-        self.hours <= 23 || self.minutes <= 59 || self.seconds <= 59
-    }
-}
+use time::{Date, PrimitiveDateTime, Time};
 
 impl<I2C, E> PCF85063<I2C>
 where
     I2C: I2c<Error = E>,
 {
     /// Read date and time all at once.
-    pub async fn get_datetime(&mut self) -> Result<DateTime, Error<E>> {
+    pub async fn get_datetime(&mut self) -> Result<PrimitiveDateTime, Error<E>> {
         let mut data = [0; 7];
         self.i2c
             .write_read(DEVICE_ADDRESS, &[Register::SECONDS], &mut data)
             .await
             .map_err(Error::I2C)?;
-        Ok(DateTime {
-            year: decode_bcd(data[6]),
-            month: decode_bcd(data[5] & 0x1f),
-            weekday: decode_bcd(data[4] & 0x07),
-            day: decode_bcd(data[3] & 0x3f),
-            hours: decode_bcd(data[2] & 0x3f),
-            minutes: decode_bcd(data[1] & 0b0111_1111),
-            seconds: decode_bcd(data[0] & 0b0111_1111),
-        })
+
+        Ok(PrimitiveDateTime::new(
+            Date::from_calendar_date(
+                2000 + decode_bcd(data[6]) as i32,
+                decode_bcd(data[5] & 0x1f).try_into()?,
+                decode_bcd(data[3] & 0x3f),
+            )?,
+            Time::from_hms(
+                decode_bcd(data[2] & 0x3f),
+                decode_bcd(data[1] & 0b0111_1111),
+                decode_bcd(data[0] & 0b0111_1111),
+            )?,
+        ))
     }
 
     /// Set date and time all at once.
-    ///
-    /// Will return an 'Error::InvalidInputData' if any of the parameters is out of range.
-    pub async fn set_datetime(&mut self, datetime: &DateTime) -> Result<(), Error<E>> {
-        if !datetime.is_valid() {
-            return Err(Error::InvalidInputData);
-        }
-
+    pub async fn set_datetime(&mut self, datetime: &PrimitiveDateTime) -> Result<(), Error<E>> {
         let payload = [
             Register::SECONDS, //first register
-            encode_bcd(datetime.seconds),
-            encode_bcd(datetime.minutes),
-            encode_bcd(datetime.hours),
-            encode_bcd(datetime.day),
-            encode_bcd(datetime.weekday),
-            encode_bcd(datetime.month), //century bit set to 0
-            encode_bcd(datetime.year),
+            encode_bcd(datetime.second()),
+            encode_bcd(datetime.minute()),
+            encode_bcd(datetime.hour()),
+            encode_bcd(datetime.day()),
+            encode_bcd(datetime.weekday().number_days_from_sunday()),
+            encode_bcd(datetime.month().into()),
+            encode_bcd((datetime.year() - 2000) as u8),
         ];
         self.i2c
             .write(DEVICE_ADDRESS, &payload)
@@ -123,29 +58,15 @@ where
     ///
     /// Will return an 'Error::InvalidInputData' if any of the parameters is out of range.
     pub async fn set_time(&mut self, time: &Time) -> Result<(), Error<E>> {
-        if !time.is_valid() {
-            return Err(Error::InvalidInputData);
-        }
-
         let payload = [
             Register::SECONDS, //first register
-            encode_bcd(time.seconds),
-            encode_bcd(time.minutes),
-            encode_bcd(time.hours),
+            encode_bcd(time.second()),
+            encode_bcd(time.minute()),
+            encode_bcd(time.hour()),
         ];
         self.i2c
             .write(DEVICE_ADDRESS, &payload)
             .await
             .map_err(Error::I2C)
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    #[test]
-    fn datetime_default_is_valid() {
-        assert!(DateTime::default().is_valid())
     }
 }

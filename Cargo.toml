@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 embedded-hal-async = { version = "0.1.0-alpha.3" }
 defmt = { version = "0.3", optional = true }
+time = { version = "0.3.17", default-features = false }
 
 [features]
 defmt = ["dep:defmt"]
