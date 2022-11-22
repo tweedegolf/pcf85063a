@@ -7,18 +7,19 @@ use embedded_hal_async::i2c::I2c;
 
 /// All possible errors in this crate
 #[derive(Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Error<E> {
     /// I2C bus error
     I2C(E),
     /// Invalid input data
     InvalidInputData,
     /// A time component was out of range
-    ComponentRange(time::error::ComponentRange),
+    ComponentRange,
 }
 
 impl<E> From<time::error::ComponentRange> for Error<E> {
-    fn from(v: time::error::ComponentRange) -> Self {
-        Self::ComponentRange(v)
+    fn from(_: time::error::ComponentRange) -> Self {
+        Self::ComponentRange
     }
 }
 
@@ -83,6 +84,7 @@ const DEVICE_ADDRESS: u8 = 0b1010001;
 /// Two possible choices, used for various enable/disable bit flags
 #[allow(non_camel_case_types)]
 #[derive(Copy, Clone, Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Control {
     /// Enable some feature, eg. timer
     On,
@@ -92,6 +94,7 @@ pub enum Control {
 
 /// PCF8563 driver
 #[derive(Debug, Default)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct PCF85063<I2C> {
     /// The concrete I2C device implementation.
     i2c: I2C,
@@ -189,6 +192,7 @@ where
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[repr(u8)]
 pub enum OutputFrequency {
     Hz32768 = 0b000,
