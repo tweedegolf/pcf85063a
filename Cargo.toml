@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-embedded-hal-async = { version = "0.1.0-alpha.3" }
+embedded-hal-async = { version = "0.2.0-alpha.0" }
 defmt = { version = "0.3", optional = true }
 time = { version = "0.3.17", default-features = false }
 
