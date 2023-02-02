@@ -23,7 +23,7 @@ impl<E> From<time::error::ComponentRange> for Error<E> {
     }
 }
 
-struct Register;
+pub struct Register;
 
 impl Register {
     // control and status registers
@@ -53,7 +53,7 @@ impl Register {
     pub const TIMER_MODE: u8 = 0x11;
 }
 
-struct BitFlags;
+pub struct BitFlags;
 
 impl BitFlags {
     // control 1
