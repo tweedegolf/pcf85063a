@@ -25,58 +25,56 @@ impl<E> From<time::error::ComponentRange> for Error<E> {
 
 struct Register;
 
-#[allow(dead_code)]
 impl Register {
     // control and status registers
-    const CONTROL_1: u8 = 0x00;
-    const CONTROL_2: u8 = 0x01;
-    const OFFSET: u8 = 0x02;
-    const RAM_BYTE: u8 = 0x03;
+    pub const CONTROL_1: u8 = 0x00;
+    pub const CONTROL_2: u8 = 0x01;
+    pub const OFFSET: u8 = 0x02;
+    pub const RAM_BYTE: u8 = 0x03;
 
     // time and date registers
-    const SECONDS: u8 = 0x04;
-    const MINUTES: u8 = 0x05;
-    const HOURS: u8 = 0x06;
-    const DAYS: u8 = 0x07;
-    const WEEKDAYS: u8 = 0x08;
-    const MONTHS: u8 = 0x09;
-    const YEARS: u8 = 0x0A;
+    pub const SECONDS: u8 = 0x04;
+    pub const MINUTES: u8 = 0x05;
+    pub const HOURS: u8 = 0x06;
+    pub const DAYS: u8 = 0x07;
+    pub const WEEKDAYS: u8 = 0x08;
+    pub const MONTHS: u8 = 0x09;
+    pub const YEARS: u8 = 0x0A;
 
     // alarm registers
-    const SECOND_ALARM: u8 = 0x0B;
-    const MINUTE_ALARM: u8 = 0x0C;
-    const HOUR_ALARM: u8 = 0x0D;
-    const DAY_ALARM: u8 = 0x0E;
-    const WEEKDAY_ALARM: u8 = 0x0F;
+    pub const SECOND_ALARM: u8 = 0x0B;
+    pub const MINUTE_ALARM: u8 = 0x0C;
+    pub const HOUR_ALARM: u8 = 0x0D;
+    pub const DAY_ALARM: u8 = 0x0E;
+    pub const WEEKDAY_ALARM: u8 = 0x0F;
 
     // timer registers
-    const TIMER_VALUE: u8 = 0x10;
-    const TIMER_MODE: u8 = 0x11;
+    pub const TIMER_VALUE: u8 = 0x10;
+    pub const TIMER_MODE: u8 = 0x11;
 }
 
 struct BitFlags;
 
-#[allow(dead_code)]
 impl BitFlags {
     // control 1
-    const CAP_SEL: u8 = 0b0000_0001; // internal oscillator capacitor selection
-    const MODE_12_24: u8 = 0b0000_0010; // 12 or 24-hour mode
-    const CIE: u8 = 0b0000_0100; // connection interrupt enable
+    pub const CAP_SEL: u8 = 0b0000_0001; // internal oscillator capacitor selection
+    pub const MODE_12_24: u8 = 0b0000_0010; // 12 or 24-hour mode
+    pub const CIE: u8 = 0b0000_0100; // connection interrupt enable
                                  // 3: UNUSED
-    const SR: u8 = 0b0001_0000; // software reset
-    const STOP: u8 = 0b0010_0000; // RTC clock stop bit
+    pub const SR: u8 = 0b0001_0000; // software reset
+    pub const STOP: u8 = 0b0010_0000; // RTC clock stop bit
                                   // 6: UNUSED
-    const EXT_TEST: u8 = 0b1000_0000; // external clock test mode
+    pub const EXT_TEST: u8 = 0b1000_0000; // external clock test mode
 
     // control 2
-    const COF: u8 = 0b0000_0111; // clkout control
-    const TF: u8 = 0b0000_1000; // timer flag
-    const HMI: u8 = 0b0001_0000; // half minute interrupt
-    const MI: u8 = 0b0010_0000; // minute interrupt
-    const AF: u8 = 0b0100_0000; // alarm flag
-    const AIE: u8 = 0b1000_0000; // alarm interrupt enabled
+    pub const COF: u8 = 0b0000_0111; // clkout control
+    pub const TF: u8 = 0b0000_1000; // timer flag
+    pub const HMI: u8 = 0b0001_0000; // half minute interrupt
+    pub const MI: u8 = 0b0010_0000; // minute interrupt
+    pub const AF: u8 = 0b0100_0000; // alarm flag
+    pub const AIE: u8 = 0b1000_0000; // alarm interrupt enabled
 
-    const AE: u8 = 0b1000_0000; // alarm enable/disable for all five (s/m/h/d/wd) settings
+    pub const AE: u8 = 0b1000_0000; // alarm enable/disable for all five (s/m/h/d/wd) settings
 }
 
 const DEVICE_ADDRESS: u8 = 0b1010001;
@@ -120,7 +118,7 @@ where
     }
 
     /// Write to a register.
-    async fn write_register(&mut self, register: u8, data: u8) -> Result<(), Error<E>> {
+    pub async fn write_register(&mut self, register: u8, data: u8) -> Result<(), Error<E>> {
         let payload: [u8; 2] = [register, data];
         self.i2c
             .write(DEVICE_ADDRESS, &payload)
@@ -129,7 +127,7 @@ where
     }
 
     /// Read from a register.
-    async fn read_register(&mut self, register: u8) -> Result<u8, Error<E>> {
+    pub async fn read_register(&mut self, register: u8) -> Result<u8, Error<E>> {
         let mut data = [0];
         self.i2c
             .write_read(DEVICE_ADDRESS, &[register], &mut data)
@@ -139,13 +137,13 @@ where
     }
 
     /// Check if specific bits are set.
-    async fn is_register_bit_flag_high(&mut self, address: u8, bitmask: u8) -> Result<bool, Error<E>> {
+    pub async fn is_register_bit_flag_high(&mut self, address: u8, bitmask: u8) -> Result<bool, Error<E>> {
         let data = self.read_register(address).await?;
         Ok((data & bitmask) != 0)
     }
 
     /// Set specific bits.
-    async fn set_register_bit_flag(&mut self, address: u8, bitmask: u8) -> Result<(), Error<E>> {
+    pub async fn set_register_bit_flag(&mut self, address: u8, bitmask: u8) -> Result<(), Error<E>> {
         let data = self.read_register(address).await?;
         if (data & bitmask) == 0 {
             self.write_register(address, data | bitmask).await
@@ -155,7 +153,7 @@ where
     }
 
     /// Clear specific bits.
-    async fn clear_register_bit_flag(&mut self, address: u8, bitmask: u8) -> Result<(), Error<E>> {
+    pub async fn clear_register_bit_flag(&mut self, address: u8, bitmask: u8) -> Result<(), Error<E>> {
         let data = self.read_register(address).await?;
         if (data & bitmask) != 0 {
             self.write_register(address, data & !bitmask).await
