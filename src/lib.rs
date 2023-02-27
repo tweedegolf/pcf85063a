@@ -60,10 +60,10 @@ impl BitFlags {
     pub const CAP_SEL: u8 = 0b0000_0001; // internal oscillator capacitor selection
     pub const MODE_12_24: u8 = 0b0000_0010; // 12 or 24-hour mode
     pub const CIE: u8 = 0b0000_0100; // connection interrupt enable
-                                 // 3: UNUSED
+                                     // 3: UNUSED
     pub const SR: u8 = 0b0001_0000; // software reset
     pub const STOP: u8 = 0b0010_0000; // RTC clock stop bit
-                                  // 6: UNUSED
+                                      // 6: UNUSED
     pub const EXT_TEST: u8 = 0b1000_0000; // external clock test mode
 
     // control 2
@@ -109,12 +109,18 @@ where
 
     /// Reset the RTC
     pub async fn reset(&mut self) -> Result<(), Error<E>> {
-        self.set_register_bit_flag(Register::CONTROL_1, BitFlags::SR).await
+        self.set_register_bit_flag(Register::CONTROL_1, BitFlags::SR)
+            .await
     }
 
     /// Destroy driver instance, return I2C bus instance.
     pub fn destroy(self) -> I2C {
         self.i2c
+    }
+
+    /// Let the device reset itself
+    pub async fn perform_software_reset(&mut self) -> Result<(), Error<E>> {
+        self.write_register(Register::CONTROL_1, 0b01011000).await
     }
 
     /// Write to a register.
@@ -137,13 +143,21 @@ where
     }
 
     /// Check if specific bits are set.
-    pub async fn is_register_bit_flag_high(&mut self, address: u8, bitmask: u8) -> Result<bool, Error<E>> {
+    pub async fn is_register_bit_flag_high(
+        &mut self,
+        address: u8,
+        bitmask: u8,
+    ) -> Result<bool, Error<E>> {
         let data = self.read_register(address).await?;
         Ok((data & bitmask) != 0)
     }
 
     /// Set specific bits.
-    pub async fn set_register_bit_flag(&mut self, address: u8, bitmask: u8) -> Result<(), Error<E>> {
+    pub async fn set_register_bit_flag(
+        &mut self,
+        address: u8,
+        bitmask: u8,
+    ) -> Result<(), Error<E>> {
         let data = self.read_register(address).await?;
         if (data & bitmask) == 0 {
             self.write_register(address, data | bitmask).await
@@ -153,7 +167,11 @@ where
     }
 
     /// Clear specific bits.
-    pub async fn clear_register_bit_flag(&mut self, address: u8, bitmask: u8) -> Result<(), Error<E>> {
+    pub async fn clear_register_bit_flag(
+        &mut self,
+        address: u8,
+        bitmask: u8,
+    ) -> Result<(), Error<E>> {
         let data = self.read_register(address).await?;
         if (data & bitmask) != 0 {
             self.write_register(address, data & !bitmask).await
@@ -181,11 +199,13 @@ where
     I2C: I2c<Error = E>,
 {
     pub async fn stop_clock(&mut self) -> Result<(), Error<E>> {
-        self.set_register_bit_flag(Register::CONTROL_1, BitFlags::STOP).await
+        self.set_register_bit_flag(Register::CONTROL_1, BitFlags::STOP)
+            .await
     }
 
     pub async fn start_clock(&mut self) -> Result<(), Error<E>> {
-        self.clear_register_bit_flag(Register::CONTROL_1, BitFlags::STOP).await
+        self.clear_register_bit_flag(Register::CONTROL_1, BitFlags::STOP)
+            .await
     }
 }
 
@@ -225,7 +245,10 @@ where
         Ok(unsafe { core::mem::transmute(value) })
     }
 
-    pub async fn write_clock_output_frequency(&mut self, freq: OutputFrequency) -> Result<(), Error<E>> {
+    pub async fn write_clock_output_frequency(
+        &mut self,
+        freq: OutputFrequency,
+    ) -> Result<(), Error<E>> {
         let value = self.read_register(Register::CONTROL_2).await?;
         let cleared = value ^ BitFlags::COF;
         let set = cleared | freq as u8;
