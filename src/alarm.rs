@@ -88,6 +88,13 @@ where
         }
     }
 
+    /// Is alarm seconds enabled?
+    pub async fn is_alarm_seconds_enabled(&mut self) -> Result<bool, Error<E>> {
+        Ok(!self
+            .is_register_bit_flag_high(Register::SECOND_ALARM, BitFlags::AE)
+            .await?)
+    }
+
     /// Control alarm minutes (On: alarm enabled, Off: alarm disabled).
     pub async fn control_alarm_minutes(&mut self, status: Control) -> Result<(), Error<E>> {
         match status {
