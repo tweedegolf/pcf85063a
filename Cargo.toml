@@ -2,6 +2,12 @@
 name = "pcf85063a"
 version = "0.1.0"
 edition = "2021"
+readme = "README.md"
+description = "An embedded-hal driver for the pcf85063a RTC"
+homepage = "https://github.com/tweedegolf/pcf85063a"
+repository = "https://github.com/tweedegolf/pcf85063a"
+keywords = ["no_std", "embedded", "RTC", "pcf85063a"]
+license = "MIT OR Apache-2.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
