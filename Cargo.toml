@@ -6,10 +6,9 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-embedded-hal = "0.2"
+embedded-hal-async = { version = "1.0.0-rc.1" }
+defmt = { version = "0.3", optional = true }
+time = { version = "0.3.17", default-features = false }
 
-[dev-dependencies]
-embedded-hal-mock = "0.2"
-
-[profile.release]
-lto = true
+[features]
+defmt = ["dep:defmt"]
