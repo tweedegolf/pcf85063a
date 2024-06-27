@@ -1,6 +1,6 @@
 [package]
 name = "pcf85063a"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 readme = "README.md"
 description = "An embedded-hal driver for the pcf85063a RTC"
@@ -12,7 +12,7 @@ license = "MIT OR Apache-2.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-embedded-hal-async = { version = "1.0.0-rc.1" }
+embedded-hal-async = { version = "1.0.0" }
 defmt = { version = "0.3", optional = true }
 time = { version = "0.3.17", default-features = false }
 
